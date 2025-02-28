@@ -1,5 +1,5 @@
 <?php
-require_once 'database.php';
+require_once 'config/database.php';
 
 class labSeven {
     private $pdo;
@@ -93,7 +93,7 @@ class labSeven {
         }
     }
 
-    function getOne($tbname, $column, $value) {
+    function getById($tbname, $column, $value) {
         try {
             $sql = "select * from $tbname where $column = :value";
             $stmt = $this->pdo->prepare($sql);

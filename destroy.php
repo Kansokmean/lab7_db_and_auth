@@ -5,5 +5,5 @@ require_once 'library/library.php';
     $criteria = "id" ;
     $values = 3;
     $labseven = new labSeven();
-    
-    $labseven ->getAll($tbname);
+
+    $labseven ->delete($tbname, $criteria, $values);
