@@ -1,8 +1,9 @@
 <?php
 require_once 'config/database.php';
 
-class labEight {
+class labSeven {
     private $pdo;
+
     public function __construct() {
         try {
             $this->pdo = new PDO('mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME, DB_USERNAME, DB_PASSWORD);
@@ -21,43 +22,62 @@ class labEight {
             $stmt = $this->pdo->prepare($sql);
 
             $stmt->execute($data);
+            echo "Create successfully </br>";
         } catch (Exception $e) {
             echo "Error: " . $e->getMessage();
         }
     }
 
-    public function update($tbname, $data, $conditions) {
+    function update($tbname, $data, $column, $value) {
         try {
-            $conditionString = implode(" AND ", array_map(fn($key) => "$key = :cond_$key", array_keys($conditions)));
-            $checkSql = "SELECT COUNT(*) FROM $tbname WHERE $conditionString";
+            $checkSql = "select count(*) from $tbname where $column = :value";
             $checkStmt = $this->pdo->prepare($checkSql);
-            $checkStmt->execute(array_combine(array_map(fn($key) => "cond_$key", array_keys($conditions)), array_values($conditions)));
-
-            if ($checkStmt->fetchColumn() == 0) {
-                return false; 
-            }
-
-            $setClause = implode(", ", array_map(fn($key) => "$key = :$key", array_keys($data)));
-            $sql = "UPDATE $tbname SET $setClause WHERE $conditionString";
-            $stmt = $this->pdo->prepare($sql);
-
-            return $stmt->execute(array_merge($data, array_combine(array_map(fn($key) => "cond_$key", array_keys($conditions)), array_values($conditions))));
-        } catch (Exception $e) {
-            return false;
-        }
-    }
-    public function delete($table, $conditions) {
-        $sql = "DELETE FROM $table WHERE ";
-        $params = [];
-        
-        foreach ($conditions as $column => $value) {
-            $sql .= "$column = ? ";
-            $params[] = $value;
-        }
+            $checkStmt->execute(['value' => $value]);
+            $count = $checkStmt->fetchColumn();
     
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute($params);
+            if ($count > 0) {
+                $setClause = "";
+                foreach ($data as $field => $val) {
+                    $setClause .= "$field = :$field, ";
+                }
+                $setClause = rtrim($setClause, ", ");
+                $sql = "update $tbname set $setClause where $column = :value";
+                $stmt = $this->pdo->prepare($sql);
+    
+                $data['value'] = $value;
+                $stmt->execute($data);
+    
+                echo "Update successfully";
+            } else {
+                echo "Error: Record not found!";
+            }
+        } catch (Exception $e) {
+            echo "Error: " . $e->getMessage();
+        }
     }
+    
+
+    function delete($tbname, $column, $value) {
+        try {
+            $checkSql = "select count(*) from $tbname where $column = :value";
+            $checkStmt = $this->pdo->prepare($checkSql);
+            $checkStmt->execute(['value' => $value]);
+            $count = $checkStmt->fetchColumn();
+    
+            if ($count > 0) {
+                $sql = "delete from $tbname where $column = :value";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute(['value' => $value]);
+    
+                echo "Delete successfully";
+            } else {
+                echo "Error: Record not found!";
+            }
+        } catch (Exception $e) {
+            echo "Error: " . $e->getMessage();
+        }
+    }
+    
     
     function getAll($tbname) {
         try {
@@ -65,12 +85,48 @@ class labEight {
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute();
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return  $data;
+            echo  json_encode($data);
 
         } catch (Exception $e) {
-            return "Error: " . $e->getMessage();
+            echo "Error: " . $e->getMessage();
         }
     }
-    
+
+    function getById($tbname, $column, $value) {
+        try {
+            $sql = "select * from $tbname where $column = :value";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['value' => $value]);
+            $data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($data) {
+                echo  json_encode($data);
+            } else {
+                echo "No record found.";
+            }
+        } catch (Exception $e) {
+            echo "Error: " . $e->getMessage();
+        }
+    }
+
+    function login($tbname, $username, $password) {
+        try {
+            $sql = "select * from $tbname where username = :username";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['username' => $username]);
+            $data = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($data) {
+                if (password_verify($password, $data['password'])) {
+                    echo "Login successfully!";
+                } else {
+                    echo "Wrong password!";
+                }
+            } else {
+                echo "User not found!";
+            }
+        } catch (Exception $e) {
+            echo "Error: " . $e->getMessage();
+        }
+    }
 }
 ?>
